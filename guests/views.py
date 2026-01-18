@@ -1,9 +1,10 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.db.models import Q
 from .models import Guest
 from .serializers import GuestSerializer
-from invitations.models import InvitationData
+from invitations.models import InvitationData, InvitationMember
 
 class GuestViewSet(viewsets.ModelViewSet):
     serializer_class = GuestSerializer
@@ -11,7 +12,10 @@ class GuestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Guest.objects.filter(invitation__user=user)
+        # Allow if user is Owner OR Member
+        queryset = Guest.objects.filter(
+            Q(invitation__user=user) | Q(invitation__members__user=user)
+        ).distinct()
         
         # Filter by invitation ID if provided
         invitation_id = self.request.query_params.get('invitation_id')
@@ -21,10 +25,23 @@ class GuestViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-name')
 
     def perform_create(self, serializer):
-        # Ensure the invitation belongs to the user
+        # Ensure the invitation belongs to the user OR user is an editor/owner member
         invitation = serializer.validated_data.get('invitation')
-        if invitation and invitation.user != self.request.user:
-            raise permissions.PermissionDenied("You do not own this invitation.")
+        
+        if not invitation:
+             serializer.save()
+             return
+
+        # Check Owner
+        is_owner = invitation.user == self.request.user
+        # Check Member Role
+        is_editor = invitation.members.filter(
+            user=self.request.user, 
+            role__in=['owner', 'editor']
+        ).exists()
+
+        if not (is_owner or is_editor):
+            raise permissions.PermissionDenied("You do not have permission to add guests to this invitation.")
         serializer.save()
 
     @action(detail=False, methods=['post'])
@@ -45,12 +62,24 @@ class GuestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data, many=True)
         serializer.is_valid(raise_exception=True)
         
-        # Check ownership for all items
+        # Check ownership/permission for all items
         for item in serializer.validated_data:
             invitation = item.get('invitation')
-            if invitation and invitation.user != request.user:
+            
+            if not invitation:
+                continue
+
+            # Check Owner
+            is_owner = invitation.user == request.user
+            # Check Member Role
+            is_editor = invitation.members.filter(
+                user=request.user, 
+                role__in=['owner', 'editor']
+            ).exists()
+            
+            if not (is_owner or is_editor):
                 return Response(
-                    {"detail": "One or more invitations do not belong to you."}, 
+                    {"detail": "You do not have permission to add guests to one or more invitations."}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
 

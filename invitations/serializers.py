@@ -1,7 +1,33 @@
 from rest_framework import serializers
-from .models import InvitationData, Event, BankAccount
+from django.contrib.auth.models import User
+from .models import InvitationData, Event, BankAccount, InvitationMember, InvitationTicket
 from core.models import Template, Song
 from payments.serializers import PaymentSerializer
+
+class UserRefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+class InvitationMemberSerializer(serializers.ModelSerializer):
+    user = UserRefSerializer(read_only=True)
+    joinedAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = InvitationMember
+        fields = ['id', 'user', 'role', 'joinedAt']
+
+class InvitationTicketSerializer(serializers.ModelSerializer):
+    expiresAt = serializers.DateTimeField(source='expires_at', read_only=True)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    isClaimed = serializers.BooleanField(source='is_claimed', read_only=True)
+
+    class Meta:
+        model = InvitationTicket
+        fields = ['id', 'email', 'role', 'token', 'expiresAt', 'isClaimed', 'createdAt']
+
+class JoinInvitationSerializer(serializers.Serializer):
+    token = serializers.CharField()
 
 class BankAccountSerializer(serializers.ModelSerializer):
     bankName = serializers.CharField(source='bank_name')
@@ -42,6 +68,55 @@ class InvitationDataSerializer(serializers.ModelSerializer):
     eventList = EventSerializer(source='events', many=True, required=False)
     digitalGifts = BankAccountSerializer(source='digital_gifts', many=True, required=False)
     payment = PaymentSerializer(read_only=True)
+    
+    # RBAC
+    members = InvitationMemberSerializer(many=True, read_only=True)
+    tickets = serializers.SerializerMethodField()
+    myRole = serializers.SerializerMethodField()
+
+    def get_tickets(self, obj):
+        # Only show tickets to Owner or Editor
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return []
+            
+        # Check permissions
+        can_see_tickets = False
+        if obj.user == request.user:
+            can_see_tickets = True
+        elif hasattr(obj, 'members'):
+            member = next((m for m in obj.members.all() if m.user == request.user), None)
+            if member and member.role in ['owner', 'editor']:
+                can_see_tickets = True
+        
+        if can_see_tickets and hasattr(obj, 'tickets'):
+            # Return active (unclaimed, not expired) tickets
+            # Note: We might want all tickets even if expired? 
+            # User said "calon members ... members yang sedang di invite".
+            # Usually implies active.
+            from django.utils import timezone
+            valid_tickets = obj.tickets.filter(is_claimed=False, expires_at__gt=timezone.now())
+            return InvitationTicketSerializer(valid_tickets, many=True).data
+            
+        return []
+
+    def get_myRole(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        
+        # 1. Check if Owner
+        if obj.user == request.user:
+            return 'owner'
+        
+        # 2. Check if Member (Optimized with prefetch usually, but checks local cache first)
+        # We can iterate over members.all() if it's prefetched
+        if hasattr(obj, 'members'):
+            member = next((m for m in obj.members.all() if m.user == request.user), None)
+            if member:
+                return member.role
+                
+        return None
 
     # Texts
     sentenceOpening = serializers.CharField(source='sentence_opening', required=False, allow_blank=True)
@@ -124,7 +199,9 @@ class InvitationDataSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'idTheme', 'idSong', 'createdAt', 'expiresAt', 'slug',
             'groomName', 'bridalName', 'dadGroomName', 'momGroomName', 'dadBridalName', 'momBridalName',
-            'eventList', 'digitalGifts', 'payment',
+            'id', 'idTheme', 'idSong', 'createdAt', 'expiresAt', 'slug',
+            'groomName', 'bridalName', 'dadGroomName', 'momGroomName', 'dadBridalName', 'momBridalName',
+            'eventList', 'digitalGifts', 'payment', 'members', 'tickets', 'myRole',
             'sentenceOpening', 'sentenceGreeting', 'sentenceMiddlehook', 'sentenceClosing',
             'imgCover', 'imgGroom', 'imgBridal', 'imgGallery',
             'theme', 'song', 'themeName' 

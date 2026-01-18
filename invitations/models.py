@@ -63,3 +63,33 @@ class Event(models.Model):
     date = models.DateField()
     time = models.CharField(max_length=50)     # Start Time
     time_end = models.CharField(max_length=50) # End Time
+
+class InvitationMember(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('editor', 'Editor'),
+        ('viewer', 'Viewer'),
+    ]
+    invitation = models.ForeignKey(InvitationData, on_delete=models.CASCADE, related_name='members')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='invitation_memberships')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='viewer')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('invitation', 'user')
+
+    def __str__(self):
+        return f"{self.user} - {self.role} @ {self.invitation}"
+
+class InvitationTicket(models.Model):
+    invitation = models.ForeignKey(InvitationData, on_delete=models.CASCADE, related_name='tickets')
+    email = models.EmailField()
+    token = models.CharField(max_length=50, blank=True, null=True) # Stored plain for Owner visibility
+    token_hash = models.CharField(max_length=128) # Store hashed token (e.g. SHA256 hexdigest)
+    role = models.CharField(max_length=20, choices=InvitationMember.ROLE_CHOICES, default='viewer')
+    expires_at = models.DateTimeField()
+    is_claimed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Ticket for {self.email} ({self.role})"

@@ -4,18 +4,12 @@ from django.utils.text import slugify
 import uuid
 
 class GuestSerializer(serializers.ModelSerializer):
-    isSent = serializers.BooleanField(source='is_sent', default=False)
-    viewAt = serializers.DateTimeField(source='view_at', allow_null=True, required=False)
-    isClickedATM = serializers.BooleanField(source='is_clicked_atm', default=False)
-    paxRequest = serializers.IntegerField(source='pax_request', allow_null=True, required=False)
-    paxConfirmed = serializers.IntegerField(source='pax_confirmed', allow_null=True, required=False)
-
     class Meta:
         model = Guest
         fields = [
             'id', 'name', 'slug', 'type', 'wa', 'email',
-            'isSent', 'viewAt', 'isClickedATM', 'rsvp',
-            'paxRequest', 'paxConfirmed', 'greetings',
+            'is_sent', 'view_at', 'is_clicked_atm', 'rsvp',
+            'pax_request', 'pax_confirmed', 'greetings',
             'invitation'  # Added invitation
         ]
         extra_kwargs = {

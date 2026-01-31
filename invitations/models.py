@@ -17,7 +17,9 @@ class InvitationData(models.Model):
 
     # Data Mempelai
     groom_name = models.CharField(max_length=200)
+    groom_fullname = models.CharField(max_length=200, blank=True, default='') # New
     bridal_name = models.CharField(max_length=200)
+    bridal_fullname = models.CharField(max_length=200, blank=True, default='') # New
     dad_groom_name = models.CharField(max_length=200)
     mom_groom_name = models.CharField(max_length=200)
     dad_bridal_name = models.CharField(max_length=200)
@@ -28,6 +30,9 @@ class InvitationData(models.Model):
     sentence_greeting = models.TextField(blank=True, default='')
     sentence_middlehook = models.TextField(blank=True, default='') # HTML/Markdown content
     sentence_closing = models.TextField(blank=True, default='')
+    sentence_love_story = models.TextField(blank=True, default='') # New
+    sentence_digital_gift = models.TextField(blank=True, default='') # New
+    sentence_rsvp = models.TextField(blank=True, default='') # New
 
     # Images (Simpan URL/Path)
     img_cover = models.CharField(max_length=500, blank=True, default='')
@@ -63,6 +68,7 @@ class Event(models.Model):
     date = models.DateField()
     time = models.CharField(max_length=50)     # Start Time
     time_end = models.CharField(max_length=50) # End Time
+    is_main_event = models.BooleanField(default=False) # New
 
 class InvitationMember(models.Model):
     ROLE_CHOICES = [

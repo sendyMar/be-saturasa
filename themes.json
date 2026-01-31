@@ -1,0 +1,16 @@
+[
+  {
+    "id_theme": "theme_001",
+    "name": "Rose Garden",
+    "category": "rustic",
+    "path": "/templates/rose-garden",
+    "used_count": 0
+  },
+  {
+    "id_theme": "theme_002",
+    "name": "Minimalist White",
+    "category": "minimalist",
+    "path": "/templates/minimalist-white",
+    "used_count": 0
+  }
+]

@@ -43,9 +43,11 @@ class EventSerializer(serializers.ModelSerializer):
     gmapsLink = serializers.CharField(source='gmaps_link')
     timeEnd = serializers.CharField(source='time_end')
 
+    isMainEvent = serializers.BooleanField(source='is_main_event', required=False)
+    
     class Meta:
         model = Event
-        fields = ['id', 'eventName', 'address', 'gmapsLink', 'date', 'time', 'timeEnd']
+        fields = ['id', 'eventName', 'address', 'gmapsLink', 'date', 'time', 'timeEnd', 'isMainEvent']
 
 class InvitationDataSerializer(serializers.ModelSerializer):
     idTheme = serializers.PrimaryKeyRelatedField(source='theme', queryset=Template.objects.all(), required=False, allow_null=True)
@@ -58,7 +60,9 @@ class InvitationDataSerializer(serializers.ModelSerializer):
 
     # Data Mempelai
     groomName = serializers.CharField(source='groom_name')
+    groomFullname = serializers.CharField(source='groom_fullname', required=False, allow_blank=True)
     bridalName = serializers.CharField(source='bridal_name')
+    bridalFullname = serializers.CharField(source='bridal_fullname', required=False, allow_blank=True)
     dadGroomName = serializers.CharField(source='dad_groom_name')
     momGroomName = serializers.CharField(source='mom_groom_name')
     dadBridalName = serializers.CharField(source='dad_bridal_name')
@@ -123,6 +127,9 @@ class InvitationDataSerializer(serializers.ModelSerializer):
     sentenceGreeting = serializers.CharField(source='sentence_greeting', required=False, allow_blank=True)
     sentenceMiddlehook = serializers.CharField(source='sentence_middlehook', required=False, allow_blank=True)
     sentenceClosing = serializers.CharField(source='sentence_closing', required=False, allow_blank=True)
+    sentenceLoveStory = serializers.CharField(source='sentence_love_story', required=False, allow_blank=True)
+    sentenceDigitalGift = serializers.CharField(source='sentence_digital_gift', required=False, allow_blank=True)
+    sentenceRSVP = serializers.CharField(source='sentence_rsvp', required=False, allow_blank=True)
 
     # Images
     imgCover = serializers.CharField(source='img_cover', required=False, allow_blank=True)
@@ -200,9 +207,10 @@ class InvitationDataSerializer(serializers.ModelSerializer):
             'id', 'idTheme', 'idSong', 'createdAt', 'expiresAt', 'slug',
             'groomName', 'bridalName', 'dadGroomName', 'momGroomName', 'dadBridalName', 'momBridalName',
             'id', 'idTheme', 'idSong', 'createdAt', 'expiresAt', 'slug',
-            'groomName', 'bridalName', 'dadGroomName', 'momGroomName', 'dadBridalName', 'momBridalName',
+            'groomName', 'bridalName', 'groomFullname', 'bridalFullname', 'dadGroomName', 'momGroomName', 'dadBridalName', 'momBridalName',
             'eventList', 'digitalGifts', 'payment', 'members', 'tickets', 'myRole',
-            'sentenceOpening', 'sentenceGreeting', 'sentenceMiddlehook', 'sentenceClosing',
+            'sentenceOpening', 'sentenceGreeting', 'sentenceMiddlehook', 'sentenceClosing', 
+            'sentenceLoveStory', 'sentenceDigitalGift', 'sentenceRSVP',
             'imgCover', 'imgGroom', 'imgBridal', 'imgGallery',
             'theme', 'song', 'themeName' 
         ]
